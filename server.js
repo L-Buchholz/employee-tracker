@@ -1,6 +1,8 @@
 const express = require("express");
+const inquirer = require("inquirer");
 const mysql = require("mysql2");
-//const sequelize = require("./config/connection");
+const fs = require("fs/promises");
+require("dotenv").config();
 
 const PORT = process.env.PORT || 3001;
 const app = express();
@@ -10,26 +12,22 @@ app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 
 // Connect to database
-const db = mysql.createConnection(
-  {
-    host: "localhost",
-    user: "root",
-    password: "password",
-    database: "tracker_db",
-  },
-  console.log(`Connected to the tracker_db database.`)
-);
-
-/*
-ALTERNATIVE CONNECTION TO DB -- ALSO REMOVE "Default response..." AT THE END
-
-sequelize.sync({ force: false }).then(() => {
-  app.listen(PORT, () => console.log(`Server listening on port ${PORT}`));
+const connection = mysql.createConnection({
+  host: process.env.DB_HOST,
+  user: process.env.DB_USER,
+  password: process.env.DB_PASSWORD,
+  database: process.env.DB_NAME,
 });
 
-*/
+const db = connection.promise();
 
 // SUPPORTING GET/POST CODE BELOW
+
+//inquirer.prompt(questionList).then(response => db.query(query, params)).then(nextQuestion)
+/*COPY/PASTE FROM OTHER ASSIGNMENT:
+function menuPrompt() {}
+function departmentPrompt() {}
+*/
 
 // Create a department
 app.post("/api/departments", ({ body }, res) => {
@@ -37,16 +35,13 @@ app.post("/api/departments", ({ body }, res) => {
     VALUES (?)`;
   const params = [body.name];
 
-  db.query(sql, params, (err, result) => {
-    if (err) {
-      res.status(400).json({ error: err.message });
-      return;
-    }
-    res.json({
-      message: "Department added!",
-      data: body,
+  db.query(sql, params)
+    .then(() => {
+      return res.json("Department added!");
+    })
+    .catch((error) => {
+      return res.status(400).json({ error: error.message });
     });
-  });
 });
 
 // Read all DEPARTMENTS
@@ -85,7 +80,14 @@ app.post("/api/roles", ({ body }, res) => {
 
 // Read all ROLES
 app.get("/api/roles", (req, res) => {
-  const sql = `SELECT id, title AS title FROM roles`;
+  const sql = `SELECT 
+  roles.id AS role_id,
+  roles.title,
+  roles.salary,
+  departments.name AS department_name
+  FROM roles
+  LEFT OUTER JOIN departments
+  ON roles.department_id = departments.id`;
 
   db.query(sql, (err, rows) => {
     if (err) {
@@ -122,35 +124,32 @@ app.post("/api/employees", ({ body }, res) => {
   });
 });
 
-// Read all EMPLOYEES
-app.get("/api/employees", (req, res) => {
-  const sql = `SELECT id, first_name, last_name, role_id, manager_id AS employee info FROM employees`;
-
-  db.query(sql, (err, rows) => {
-    if (err) {
-      res.status(500).json({ error: err.message });
-      return;
-    }
-    res.json({
-      message: "Employees uploaded and viewable",
-      data: rows,
-    });
-  });
-});
-
-// TODO: Read list of all employees and associated JOB TITLE, DEPARTMENT,
+// Read list of all employees and associated JOB TITLE, DEPARTMENT,
 // [cont'd] SALARY, and MANAGER THE EMPLOYEE REPORTS TO using LEFT JOIN
 // [cont'd] "NULL" if no manager
-
-app.get("/api/roles", (req, res) => {
-  const sql = `SELECT employees.role_id AS role, roles.title FROM roles LEFT JOIN employees ON roles.id = employees.role_id ORDER BY employees.role_id;`;
+app.get("/api/employees", (req, res) => {
+  const sql = `SELECT
+  employees.id AS employee_id,
+  employees.first_name,
+  employees.last_name,
+  roles.title AS role_name,
+  roles.salary,
+  departments.name AS department_name,
+  managers.first_name AS manager_first_name
+  FROM employees
+  LEFT OUTER JOIN roles
+  ON employees.role_id = roles.id
+  LEFT OUTER JOIN employees AS managers
+  ON employees.manager_id = employees.id
+  LEFT OUTER JOIN departments
+  ON departments.id = roles.department_id`;
   db.query(sql, (err, rows) => {
     if (err) {
       res.status(500).json({ error: err.message });
       return;
     }
     res.json({
-      message: "Role query successful!",
+      message: "Employee query successful!",
       data: rows,
     });
   });
@@ -179,7 +178,7 @@ app.put("/api/update-employee/:id", (req, res) => {
   });
 });
 
-// Delete an EMPLOYEE
+// BONUS: Delete an EMPLOYEE
 app.delete("/api/employees/:id", (req, res) => {
   const sql = `DELETE FROM employees WHERE id = ?`;
   const params = [req.params.id];
