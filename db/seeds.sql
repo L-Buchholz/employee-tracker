@@ -28,8 +28,8 @@ VALUES ("Lauren", "Buchholz", 1, NULL),
 
 -- For employees with managers -- 
 
-INSERT INTO employees (id, first_name, last_name, role_id, manager_id)
+INSERT INTO employees (first_name, last_name, role_id, manager_id)
 VALUES
-       ("Example Accounting", 8, 4),
-       ("Example Engineer", 6, 2),
-       ("Example Office", 9, 3);
+       ("Example", "Accounting", 8, 4),
+       ("Example", "Engineer", 6, 2),
+       ("Example", "Office", 9, 3);

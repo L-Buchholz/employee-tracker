@@ -46,38 +46,44 @@ function promptForOptions() {
   return inquirer.prompt(listOptions).then((response) => {
     if (response.options === "view-departments") {
       return viewDepartments();
-      /*} else if (response.options === "view-roles") {
+    } else if (response.options === "add-department") {
+      return addDepartment();
+    }
+    /* } else if (response.options === "view-roles") {
       return viewRoles();
     } else {
       return generateHtml();
     }
     */
-    }
   });
 }
 
 //Initiates viewDepartments
 function viewDepartments() {
   const sql = `SELECT id, name FROM departments`;
-  return db.query(sql).then((rows) => {
-    console.log(rows);
-  });
+  return db
+    .query(sql)
+    .then(([rows]) => {
+      console.log(cTable.getTable(rows));
+    })
+    .then(promptForOptions);
 }
 
 // Create a department
-app.post("/ai/departments", ({ body }, res) => {
+function addDepartment() {
   const sql = `INSERT INTO departments (name)
     VALUES (?)`;
-  const params = [body.name];
-
-  db.query(sql, params)
-    .then(() => {
-      return res.json("Department added!");
-    })
-    .catch((error) => {
-      return res.status(400).json({ error: error.message });
-    });
-});
+  return inquirer
+    .prompt([
+      {
+        type: "input",
+        message: "What is the name of your department?",
+        name: "name",
+      },
+    ])
+    .then((res) => db.query(sql, [res.name]))
+    .then(promptForOptions);
+}
 
 // Read all DEPARTMENTS
 app.get("/api/departments", (req, res) => {
