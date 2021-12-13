@@ -2,6 +2,7 @@ const express = require("express");
 const inquirer = require("inquirer");
 const mysql = require("mysql2");
 const fs = require("fs/promises");
+const cTable = require("console.table");
 require("dotenv").config();
 
 const PORT = process.env.PORT || 3001;
@@ -22,15 +23,49 @@ const connection = mysql.createConnection({
 const db = connection.promise();
 
 // SUPPORTING GET/POST CODE BELOW
+const listOptions = [
+  {
+    type: "list",
+    message: "Please select from one of the following options:",
+    choices: [
+      { value: "view-departments", name: "View all departments" },
+      { value: "view-roles", name: "View all roles" },
+      { value: "view-employees", name: "View all employees" },
+      { value: "add-department", name: "Add a department" },
+      { value: "add-role", name: "Add a role" },
+      { value: "add-employee", name: "Add an employee" },
+      { value: "update-employee", name: "Update an employee" },
+      { value: "finish", name: "Finish and exit" },
+    ],
+    name: "options",
+  },
+];
 
-//inquirer.prompt(questionList).then(response => db.query(query, params)).then(nextQuestion)
-/*COPY/PASTE FROM OTHER ASSIGNMENT:
-function menuPrompt() {}
-function departmentPrompt() {}
-*/
+//Initiates list options prompt
+function promptForOptions() {
+  return inquirer.prompt(listOptions).then((response) => {
+    if (response.options === "view-departments") {
+      return viewDepartments();
+      /*} else if (response.options === "view-roles") {
+      return viewRoles();
+    } else {
+      return generateHtml();
+    }
+    */
+    }
+  });
+}
+
+//Initiates viewDepartments
+function viewDepartments() {
+  const sql = `SELECT id, name FROM departments`;
+  return db.query(sql).then((rows) => {
+    console.log(rows);
+  });
+}
 
 // Create a department
-app.post("/api/departments", ({ body }, res) => {
+app.post("/ai/departments", ({ body }, res) => {
   const sql = `INSERT INTO departments (name)
     VALUES (?)`;
   const params = [body.name];
@@ -46,7 +81,7 @@ app.post("/api/departments", ({ body }, res) => {
 
 // Read all DEPARTMENTS
 app.get("/api/departments", (req, res) => {
-  const sql = `SELECT id, name AS name FROM departments`;
+  const sql = `SELECT id, name FROM departments`;
 
   db.query(sql, (err, rows) => {
     if (err) {
@@ -207,6 +242,4 @@ app.use((req, res) => {
   res.status(404).end();
 });
 
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-});
+promptForOptions();
