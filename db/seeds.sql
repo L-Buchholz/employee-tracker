@@ -26,7 +26,7 @@ VALUES ("Lauren", "Buchholz", 1, NULL),
        ("Kris", "Mattera", 3, NULL),
        ("Emily", "VanGerpen", 2, NULL);
 
--- For employees with managers -- 
+-- For sample employees with managers -- 
 
 INSERT INTO employees (first_name, last_name, role_id, manager_id)
 VALUES

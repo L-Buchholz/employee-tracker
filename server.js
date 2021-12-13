@@ -3,6 +3,7 @@ const inquirer = require("inquirer");
 const mysql = require("mysql2");
 const fs = require("fs/promises");
 const cTable = require("console.table");
+const { runInNewContext } = require("vm");
 require("dotenv").config();
 
 const PORT = process.env.PORT || 3001;
@@ -48,13 +49,11 @@ function promptForOptions() {
       return viewDepartments();
     } else if (response.options === "add-department") {
       return addDepartment();
-    }
-    /* } else if (response.options === "view-roles") {
+    } else if (response.options === "view-roles") {
       return viewRoles();
-    } else {
-      return generateHtml();
+    } else if (response.options === "add-role") {
+      return addRole();
     }
-    */
   });
 }
 
@@ -85,42 +84,42 @@ function addDepartment() {
     .then(promptForOptions);
 }
 
-// Read all DEPARTMENTS
-app.get("/api/departments", (req, res) => {
-  const sql = `SELECT id, name FROM departments`;
+// Create a role
+function addRole() {
+  const department = `SELECT id, name FROM departments`;
+  const sql = `INSERT INTO roles (title, salary, department_id)
+    VALUES (?, ?, ?)`;
+  return db
+    .query(department)
+    .then(([rows]) =>
+      inquirer.prompt([
+        {
+          type: "input",
+          message: "What is the name of this role?",
+          name: "name",
+        },
+        {
+          type: "input",
+          message: "What is this role's salary?",
+          name: "salary",
+        },
+        {
+          type: "list",
+          message: "Select a department for this role:",
+          name: "department",
+          choices: rows.map((row) => ({
+            name: row.name,
+            value: row.id,
+          })),
+        },
+      ])
+    )
+    .then((res) => db.query(sql, [res.name, res.salary, res.department]))
+    .then(promptForOptions);
+}
 
-  db.query(sql, (err, rows) => {
-    if (err) {
-      res.status(500).json({ error: err.message });
-      return;
-    }
-    res.json({
-      message: "Departments uploaded and viewable",
-      data: rows,
-    });
-  });
-});
-
-// Create a ROLE
-app.post("/api/roles", ({ body }, res) => {
-  const sql = `INSERT INTO roles (title)
-    VALUES (?)`;
-  const params = [body.title];
-
-  db.query(sql, params, (err, result) => {
-    if (err) {
-      res.status(400).json({ error: err.message });
-      return;
-    }
-    res.json({
-      message: "Role added!",
-      data: body,
-    });
-  });
-});
-
-// Read all ROLES
-app.get("/api/roles", (req, res) => {
+// View all roles
+function viewRoles() {
   const sql = `SELECT 
   roles.id AS role_id,
   roles.title,
@@ -129,20 +128,17 @@ app.get("/api/roles", (req, res) => {
   FROM roles
   LEFT OUTER JOIN departments
   ON roles.department_id = departments.id`;
+  return db
+    .query(sql)
+    .then(([rows]) => {
+      console.log(cTable.getTable(rows));
+    })
+    .then(promptForOptions);
+}
 
-  db.query(sql, (err, rows) => {
-    if (err) {
-      res.status(500).json({ error: err.message });
-      return;
-    }
-    res.json({
-      message: "Roles uploaded and viewable",
-      data: rows,
-    });
-  });
-});
+// Create an employee
+// UPDATE CODE
 
-// Create an EMPLOYEE
 app.post("/api/employees", ({ body }, res) => {
   const sql = `INSERT INTO employees (first_name, last_name, role_id, manager_id)
     VALUES (?)`;
@@ -165,9 +161,9 @@ app.post("/api/employees", ({ body }, res) => {
   });
 });
 
-// Read list of all employees and associated JOB TITLE, DEPARTMENT,
-// [cont'd] SALARY, and MANAGER THE EMPLOYEE REPORTS TO using LEFT JOIN
-// [cont'd] "NULL" if no manager
+// View all employees
+// UPDATE CODE
+
 app.get("/api/employees", (req, res) => {
   const sql = `SELECT
   employees.id AS employee_id,
@@ -196,7 +192,7 @@ app.get("/api/employees", (req, res) => {
   });
 });
 
-//Update an EMPLOYEE
+// ADDITIONAL UPDATE EMPLOYEE POTENTIAL CODE:
 
 app.put("/api/update-employee/:id", (req, res) => {
   const sql = `UPDATE employees SET employee = ? WHERE id = ?`;
