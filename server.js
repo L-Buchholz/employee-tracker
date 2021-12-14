@@ -47,12 +47,27 @@ function promptForOptions() {
   return inquirer.prompt(listOptions).then((response) => {
     if (response.options === "view-departments") {
       return viewDepartments();
-    } else if (response.options === "add-department") {
+    }
+    if (response.options === "add-department") {
       return addDepartment();
-    } else if (response.options === "view-roles") {
+    }
+    if (response.options === "view-roles") {
       return viewRoles();
-    } else if (response.options === "add-role") {
+    }
+    if (response.options === "add-role") {
       return addRole();
+    }
+    if (response.options === "view-employees") {
+      return viewEmployees();
+    }
+    if (response.options === "add-employee") {
+      return addEmployee();
+    }
+    if (response.options === "update-employee") {
+      return updateEmployee();
+    }
+    if (response.options === "finish") {
+      return;
     }
   });
 }
@@ -137,34 +152,59 @@ function viewRoles() {
 }
 
 // Create an employee
-// UPDATE CODE
 
-app.post("/api/employees", ({ body }, res) => {
+function addEmployee() {
+  const roleTable = `SELECT id, title FROM roles`;
+  const employeeTable = `SELECT id, first_name, last_name FROM employees`;
   const sql = `INSERT INTO employees (first_name, last_name, role_id, manager_id)
-    VALUES (?)`;
-  const params = [
-    body.first_name,
-    body.last_name,
-    body.role_id,
-    body.manager_id,
-  ];
-
-  db.query(sql, params, (err, result) => {
-    if (err) {
-      res.status(400).json({ error: err.message });
-      return;
-    }
-    res.json({
-      message: "Employee added!",
-      data: body,
-    });
-  });
-});
+    VALUES (?, ?, ?, ?)`;
+  return db
+    .query(roleTable)
+    .then(([roles]) =>
+      db.query(employeeTable).then(([employees]) =>
+        inquirer.prompt([
+          {
+            type: "input",
+            message: "What is the employee's first name?",
+            name: "first",
+          },
+          {
+            type: "input",
+            message: "What is the employee's last name?",
+            name: "last",
+          },
+          {
+            type: "list",
+            message: "Select the employee's job title:",
+            name: "role",
+            choices: roles.map((role) => ({
+              name: role.title,
+              value: role.id,
+            })),
+          },
+          {
+            type: "list",
+            message: "Select a manager if applicable:",
+            name: "manager",
+            choices: [
+              { name: "No manager", value: null },
+              // Incorporates the following mapped values into the above "choices" array (same level as "No manager", null)
+              ...employees.map((manager) => ({
+                name: `${manager.first_name} ${manager.last_name}`,
+                value: manager.id,
+              })),
+            ],
+          },
+        ])
+      )
+    )
+    .then((res) => db.query(sql, [res.first, res.last, res.role, res.manager]))
+    .then(promptForOptions);
+}
 
 // View all employees
-// UPDATE CODE
 
-app.get("/api/employees", (req, res) => {
+function viewEmployees() {
   const sql = `SELECT
   employees.id AS employee_id,
   employees.first_name,
@@ -172,70 +212,62 @@ app.get("/api/employees", (req, res) => {
   roles.title AS role_name,
   roles.salary,
   departments.name AS department_name,
-  managers.first_name AS manager_first_name
+  managers.first_name AS manager_first_name,
+  managers.last_name AS manager_last_name
   FROM employees
-  LEFT OUTER JOIN roles
+  JOIN roles
   ON employees.role_id = roles.id
-  LEFT OUTER JOIN employees AS managers
-  ON employees.manager_id = employees.id
-  LEFT OUTER JOIN departments
+  LEFT JOIN employees AS managers
+  ON employees.manager_id = managers.id
+  JOIN departments
   ON departments.id = roles.department_id`;
-  db.query(sql, (err, rows) => {
-    if (err) {
-      res.status(500).json({ error: err.message });
-      return;
-    }
-    res.json({
-      message: "Employee query successful!",
-      data: rows,
-    });
-  });
-});
+  return db
+    .query(sql)
+    .then(([rows]) => {
+      console.log(cTable.getTable(rows));
+    })
+    .then(promptForOptions);
+}
 
-// ADDITIONAL UPDATE EMPLOYEE POTENTIAL CODE:
+// Update employee
 
-app.put("/api/update-employee/:id", (req, res) => {
-  const sql = `UPDATE employees SET employee = ? WHERE id = ?`;
-  const params = [req.body.review, req.params.id];
-
-  db.query(sql, params, (err, result) => {
-    if (err) {
-      res.status(400).json({ error: err.message });
-    } else if (!result.affectedRows) {
-      res.json({
-        message: "Employee not found",
-      });
-    } else {
-      res.json({
-        message: "Employee successfully updated!",
-        data: req.body,
-        changes: result.affectedRows,
-      });
-    }
-  });
-});
-
-// BONUS: Delete an EMPLOYEE
-app.delete("/api/employees/:id", (req, res) => {
-  const sql = `DELETE FROM employees WHERE id = ?`;
-  const params = [req.params.id];
-
-  db.query(sql, params, (err, result) => {
-    if (err) {
-      res.statusMessage(400).json({ error: res.message });
-    } else if (!result.affectedRows) {
-      res.json({
-        message: "Employee not found",
-      });
-    } else {
-      res.json({
-        message: "Employee removed from database",
-        changes: result.affectedRows,
-        id: req.params.id,
-      });
-    }
-  });
-});
+function updateEmployee() {
+  const roleTable = `SELECT id, title FROM roles`;
+  const employeeTable = `SELECT id, first_name, last_name FROM employees`;
+  // SQL syntax (below): Update role where employee id = [user input]
+  const sql = `UPDATE employees SET role_id = ? WHERE id = ?`;
+  return (
+    db
+      .query(roleTable)
+      .then(([roles]) =>
+        db.query(employeeTable).then(([employees]) =>
+          inquirer.prompt([
+            {
+              type: "list",
+              message: "Select the employee to be updated:",
+              name: "employee",
+              choices: employees.map((employee) => ({
+                name: `${employee.first_name} ${employee.last_name}`,
+                value: employee.id,
+              })),
+            },
+            {
+              type: "list",
+              message: "Select a new job title:",
+              name: "role",
+              choices: roles.map((role) => ({
+                name: role.title,
+                value: role.id,
+              })),
+            },
+          ])
+        )
+      )
+      // The following MUST follow the "const sql = [syntax]": Role ID FIRST, then employee ID
+      .then((res) => db.query(sql, [res.role, res.employee]))
+      .then(promptForOptions)
+  );
+}
 
 // End supporting GET/POST code
 

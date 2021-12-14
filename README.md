@@ -16,12 +16,12 @@ A business owner requires a content management system to view and manage departm
 
 Additionally, a video walk-through highlighting the program's functionality has been created and linked (below), and the Javascript includes comments.
 
-## **UPDATE SCREENSHOT** Employee Tracker -- File screenshot
+## Employee Tracker -- File screenshot
 
 The following is a screenshot of the command-line interface, highlighting the program's appearance and functionality:
 
-![Terminal view of Employee Tracker. This image includes: a menu showing user prompts and responses to the Employee Tracker database, including department, role, and employee information derived from the SQL tables](./screenshot.png)
+![Terminal view of Employee Tracker. This image includes: a menu showing user prompts as well as "Update an employee" and "View all employees" responses, including a column.table database view](./screenshot.png)
 
 ## Link to video walk-through:
 
-As the employee tracker cannot be deployed at a live URL, a video highlighting a walk-through of using this application is included here: [LINK VIDEO THROUGH SCREENCASTIFY AND G DRIVE HERE]
+As the employee tracker cannot be deployed at a live URL, a video highlighting a walk-through of using this application is included here: https://drive.google.com/file/d/1vY99GqzNHrA41b8aoqa1yq9Tb1r7Uvrj/view?usp=sharing
