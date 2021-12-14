@@ -24,4 +24,4 @@ The following is a screenshot of the command-line interface, highlighting the pr
 
 ## Link to video walk-through:
 
-As the employee tracker cannot be deployed at a live URL, a video highlighting a walk-through of using this application is included here: https://drive.google.com/file/d/1vY99GqzNHrA41b8aoqa1yq9Tb1r7Uvrj/view?usp=sharing
+As the employee tracker cannot be deployed at a live URL, a video highlighting a walk-through of using this application is included here: https://drive.google.com/file/d/1vY99GqzNHrA41b8aoqa1yq9Tb1r7Uvrj/view
